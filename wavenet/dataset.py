@@ -56,7 +56,7 @@ class RawAudioDataset(torch.utils.data.Dataset):
         return self.length
 
 
-class Dataset(RawAudioDataset):
+class WaveNetDataset(RawAudioDataset):
     def __init__(self, dirpath, output_length, receptive_field,
                  quantization_levels=256):
         segment_length = output_length + receptive_field

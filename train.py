@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from wavenet.model import WaveNet
-from wavenet.dataset import Dataset
+from wavenet.dataset import WaveNetDataset
 
 
 TIMIT_DIR = 'data/TIMIT/'
@@ -11,15 +11,15 @@ OUTPUT_LENGTH = 5000
 BATCH_SIZE = 32
 EPOCHS = 1
 SHUFFLE = True
-WORKERS = 0
-LEARNING_RATE = 1e-4
+WORKERS = 8
+LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 0
 
 
 model = WaveNet()
 print(f'Receptive field: {model.receptive_field}')
 
-dataset = Dataset(
+dataset = WaveNetDataset(
     dirpath=TIMIT_DIR,
     output_length=OUTPUT_LENGTH,
     receptive_field=model.receptive_field,

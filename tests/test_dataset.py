@@ -1,9 +1,9 @@
-from wavenet.dataset import Dataset
+from wavenet.dataset import WaveNetDataset
 
 
 def test_dataset():
     path = 'data/TIMIT/'
-    dataset = Dataset(
+    dataset = WaveNetDataset(
         dirpath=path,
         output_length=1,
         receptive_field=5000,
