@@ -50,10 +50,10 @@ class ResidualBlock(nn.Module):
 
 
 class WaveNet(nn.Module):
-    def __init__(self, layers=10, blocks=4, kernel_size=2,
-                 residual_channels=32, dilation_channels=32,
-                 input_channels=256, skip_channels=256, end_channels=256, 
-                 output_channels=256, initial_filter_width=1, bias=False):
+    def __init__(self, layers=10, blocks=4, kernel_size=2, input_channels=256,
+                 residual_channels=32, dilation_channels=32, skip_channels=256,
+                 end_channels=256, output_channels=256,
+                 initial_filter_width=1, bias=False):
         super().__init__()
         self.layers = layers
         self.blocks = blocks
