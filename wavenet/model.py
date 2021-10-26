@@ -128,6 +128,8 @@ class WaveNet(nn.Module):
         n_in, c_in, l_in = x.shape
         l_out = l_in - self.receptive_field + 1
         skip_sum = torch.zeros((n_in, self.skip_channels, l_out))
+        if x.is_cuda:
+            skip_sum = skip_sum.cuda()
         x = self.initial_conv(x)
         for res_block in self.residual_blocks:
             x, skip = res_block(x, l_out)
