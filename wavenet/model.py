@@ -58,14 +58,19 @@ class WaveNet(nn.Module):
         self.layers = layers
         self.blocks = blocks
         self.kernel_size = kernel_size
+        self.input_channels = input_channels
         self.residual_channels = residual_channels
         self.dilation_channels = dilation_channels
-        self.input_channels = input_channels
         self.skip_channels = skip_channels
         self.end_channels = end_channels
         self.output_channels = output_channels
         self.initial_filter_width = initial_filter_width
         self.bias = bias
+
+        self.args = {
+
+        }
+
         self.residual_blocks = nn.ModuleList()
         for b in range(blocks):
             for i in range(layers):
@@ -98,6 +103,26 @@ class WaveNet(nn.Module):
             kernel_size=1,
             bias=bias,
         )
+
+    def __repr__(self):
+        kwargs = [
+            'layers',
+            'blocks',
+            'kernel_size',
+            'input_channels',
+            'residual_channels',
+            'dilation_channels',
+            'skip_channels',
+            'end_channels',
+            'output_channels',
+            'initial_filter_width',
+            'bias',
+        ]
+        kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
+        kwargs = ', '.join(kwargs)
+        module_name = self.__class__.__module__
+        class_name = self.__class__.__name__
+        return f'{module_name}.{class_name}({kwargs})'
 
     def forward(self, x):
         n_in, c_in, l_in = x.shape

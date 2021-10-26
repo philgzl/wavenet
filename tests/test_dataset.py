@@ -1,10 +1,12 @@
+from wavenet.config import get_config
 from wavenet.dataset import WaveNetDataset
 
 
-dirpath = 'data/TIMIT/'
-receptive_field = 5000
-target_length = 32
-quantization_levels = 256
+config = get_config()
+dirpath = config.DATASET.DIRPATH
+target_length = config.DATASET.TARGET_LENGTH
+quantization_levels = config.DATASET.QUANTIZATION_LEVELS
+receptive_field = 4093
 input_length = receptive_field + target_length - 1
 
 

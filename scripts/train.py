@@ -1,12 +1,9 @@
 import logging
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
+from wavenet.args import WaveNetArgParser
 from wavenet.model import WaveNet
 from wavenet.dataset import WaveNetDataset
-from wavenet.args import WaveNetArgParser
+from wavenet.training import WaveNetTrainer
 
 
 def main():
@@ -29,6 +26,7 @@ def main():
         initial_filter_width=args.initial_filter_width,
         bias=args.bias,
     )
+    logging.info(repr(model))
 
     logging.info('Initializing dataset')
     dataset = WaveNetDataset(
@@ -37,39 +35,22 @@ def main():
         target_length=args.target_length,
         quantization_levels=args.quantization_levels,
     )
+    logging.info(repr(dataset))
 
-    logging.info('Initializing dataloader')
-    dataloader = torch.utils.data.DataLoader(
+    logging.info('Initializing trainer')
+    trainer = WaveNetTrainer(
+        model=model,
         dataset=dataset,
         batch_size=args.batch_size,
         shuffle=args.shuffle,
-        num_workers=args.workers,
+        workers=args.workers,
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
     )
-
-    logging.info('Initializing criterion')
-    criterion = nn.CrossEntropyLoss()
-
-    logging.info('Initializing optimizer')
-    optimizer = optim.Adam(
-        params=model.parameters(),
-        lr=args.learning_rate,
-        weight_decay=args.weight_decay,
-    )
+    logging.info(repr(trainer))
 
     logging.info('Starting training loop')
-    for epoch in range(args.epochs):
-
-        model.train()
-        for i, item in enumerate(dataloader):
-            input_, target = item
-            optimizer.zero_grad()
-            output = model(input_)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.step()
-
-            log = f'Epoch {epoch} item {i}: train loss: {loss.item():.2f}'
-            logging.info(log)
+    trainer.train()
 
 
 if __name__ == '__main__':
