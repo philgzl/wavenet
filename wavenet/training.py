@@ -136,6 +136,7 @@ class WaveNetTrainer:
             self.model.cuda()
 
         timer = TrainingTimer(self.epochs - epoch - 1)
+        timer.start()
 
         for epoch in range(epoch+1, self.epochs):
             self.model.train()
@@ -152,7 +153,7 @@ class WaveNetTrainer:
                 self.optimizer.step()
 
             logging.info('Evaluating')
-            train_loss = self.evaluate(self.val_dataloader)
+            train_loss = self.evaluate(self.train_dataloader)
             val_loss = self.evaluate(self.val_dataloader)
             self.logger.add(train_loss, val_loss)
             self.logger.log(epoch)
