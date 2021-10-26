@@ -31,6 +31,7 @@ class WaveNetArgParser(argparse.ArgumentParser):
         group.add_argument('--learning_rate', type=float)
         group.add_argument('--weight_decay', type=float)
         group.add_argument('--train_val_split', type=float)
+        group.add_argument('--cuda', type=lambda x: bool(int(x)))
 
         config = get_config()
         self.set_defaults(
@@ -53,4 +54,5 @@ class WaveNetArgParser(argparse.ArgumentParser):
             learning_rate=config.TRAINING.LEARNING_RATE,
             weight_decay=config.TRAINING.WEIGHT_DECAY,
             train_val_split=config.TRAINING.TRAIN_VAL_SPLIT,
+            cuda=config.TRAINING.CUDA,
         )

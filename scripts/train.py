@@ -1,3 +1,4 @@
+import sys
 import logging
 
 from wavenet.args import WaveNetArgParser
@@ -7,7 +8,7 @@ from wavenet.training import WaveNetTrainer
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     parser = WaveNetArgParser(description='model training')
     args = parser.parse_args()
@@ -46,6 +47,9 @@ def main():
         workers=args.workers,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
+        weight_decay=args.weight_decay,
+        train_val_split=args.train_val_split,
+        cuda=args.cuda,
     )
     logging.info(repr(trainer))
 

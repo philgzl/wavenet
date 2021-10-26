@@ -48,8 +48,8 @@ class TrainingTimer:
 
 class WaveNetTrainer:
     def __init__(self, model, dataset, batch_size=32, shuffle=True,
-                 workers=0, epochs=1, learning_rate=1e-3, weight_decay=0.0,
-                 train_val_split=0.8):
+                 workers=8, epochs=1, learning_rate=1e-3, weight_decay=0.0,
+                 train_val_split=0.8, cuda=True):
         self.model = model
         self.dataset = dataset
         self.batch_size = batch_size
@@ -59,6 +59,7 @@ class WaveNetTrainer:
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.train_val_split = train_val_split
+        self.cuda = cuda
 
         train_length = int(len(self.dataset)*train_val_split)
         val_length = len(self.dataset) - train_length
@@ -95,6 +96,7 @@ class WaveNetTrainer:
             'learning_rate',
             'weight_decay',
             'train_val_split',
+            'cuda',
         ]
         kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
         kwargs = ', '.join(kwargs)
@@ -114,6 +116,9 @@ class WaveNetTrainer:
         else:
             epoch = -1
 
+        if self.cuda:
+            self.model.cuda()
+
         epoch_timer = TrainingTimer(self.epochs - epoch - 1)
         step_timer = TrainingTimer(len(self.train_dataloader))
 
@@ -125,6 +130,8 @@ class WaveNetTrainer:
 
             for i, item in enumerate(self.train_dataloader):
                 input_, target = item
+                if self.cuda:
+                    input_, target = input_.cuda(), target.cuda()
                 self.optimizer.zero_grad()
                 output = self.model(input_)
                 loss = self.criterion(output, target)

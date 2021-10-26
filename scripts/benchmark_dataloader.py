@@ -1,3 +1,4 @@
+import sys
 import logging
 import time
 
@@ -9,7 +10,7 @@ from wavenet.args import WaveNetArgParser
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     parser = WaveNetArgParser(description='dataloader benchmarking')
     args = parser.parse_args()
@@ -28,6 +29,7 @@ def main():
         initial_filter_width=args.initial_filter_width,
         bias=args.bias,
     )
+    logging.info(repr(model))
 
     logging.info('Initializing dataset')
     dataset = WaveNetDataset(
@@ -36,6 +38,7 @@ def main():
         target_length=args.target_length,
         quantization_levels=args.quantization_levels,
     )
+    logging.info(repr(dataset))
 
     logging.info('Initializing dataloader')
     dataloader = torch.utils.data.DataLoader(
