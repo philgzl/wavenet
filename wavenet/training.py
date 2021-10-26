@@ -155,7 +155,7 @@ class WaveNetTrainer:
             train_loss = self.evaluate(self.val_dataloader)
             val_loss = self.evaluate(self.val_dataloader)
             self.logger.add(train_loss, val_loss)
-            self.logger.log()
+            self.logger.log(epoch)
 
             logging.info('Saving checkpoint')
             self.save_checkpoint(epoch, checkpoint_path)
