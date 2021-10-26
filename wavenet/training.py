@@ -169,6 +169,8 @@ class WaveNetTrainer:
         with torch.no_grad():
             for i, item in enumerate(dataloader):
                 input_, target = item
+                if self.cuda:
+                    input_, target = input_.cuda(), target.cuda()
                 output = self.model(input_)
                 loss = self.criterion(output, target)
                 total_loss += loss.item()
