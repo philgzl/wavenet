@@ -10,7 +10,12 @@ from wavenet.args import WaveNetArgParser
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(
+        level=logging.INFO,
+        stream=sys.stdout,
+        format='%(asctime)s %(levelname)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
 
     parser = WaveNetArgParser(description='dataloader benchmarking')
     args = parser.parse_args()

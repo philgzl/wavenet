@@ -21,13 +21,10 @@ class TrainingTimer:
         self.steps_taken += 1
 
     def log(self):
-        log = f'Estimated time left: {self.etl_fmt()}'
-        logging.info(log)
-
-    def etl_fmt(self):
         etl = self.estimated_time_left
         h, m, s = int(etl//3600), int((etl % 3600)//60), int(etl % 60)
-        return f'{h} h {m} m {s} s'
+        log = f'Estimated time left: {h} h {m} m {s} s'
+        logging.info(log)
 
     @property
     def elapsed_time(self):
@@ -49,17 +46,18 @@ class TrainingTimer:
 class LossLogger:
     def __init__(self, epochs):
         self.epochs = epochs
-        self.train_losses = []
-        self.val_losses = []
+        self.losses = {'train': [], 'val': []}
 
     def add(self, train_loss, val_loss):
-        self.train_losses.append(train_loss)
-        self.val_losses.append(val_loss)
+        self.losses['train'].append(train_loss)
+        self.losses['val'].append(val_loss)
 
     def log(self, epoch):
+        train_loss = self.losses['train'][-1]
+        val_loss = self.losses['val'][-1]
         logging.info(f'Epoch {epoch+1}/{self.epochs}, '
-                     f'train loss: {self.train_losses[-1]:.2f}, '
-                     f'val loss: {self.val_losses[-1]:.2f}')
+                     f'train loss: {train_loss:.2f}, '
+                     f'val loss: {val_loss:.2f}')
 
 
 class WaveNetTrainer:
@@ -163,7 +161,7 @@ class WaveNetTrainer:
             self.save_checkpoint(epoch, checkpoint_path)
 
             timer.step()
-            logging.info(f'Estimated time left: {timer.etl_fmt()}')
+            timer.log()
 
     def evaluate(self, dataloader):
         self.model.eval()
@@ -182,6 +180,7 @@ class WaveNetTrainer:
             'epoch': epoch,
             'model': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
+            'losses': self.logger.losses,
         }
         torch.save(state, path)
 
@@ -189,4 +188,5 @@ class WaveNetTrainer:
         state = torch.load(path)
         self.model.load_state_dict(state['model'])
         self.optimizer.load_state_dict(state['optimizer'])
+        self.logger.losses = state['losses']
         return state['epoch']
