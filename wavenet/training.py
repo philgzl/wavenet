@@ -46,9 +46,25 @@ class TrainingTimer:
         return self.time_per_step*self.steps_left
 
 
+class LossLogger:
+    def __init__(self, epochs):
+        self.epochs = epochs
+        self.train_losses = []
+        self.val_losses = []
+
+    def add(self, train_loss, val_loss):
+        self.train_losses.append(train_loss)
+        self.val_losses.append(val_loss)
+
+    def log(self, epoch):
+        logging.info(f'Epoch {epoch+1}/{self.epochs}, '
+                     f'train loss: {self.train_losses[-1]:.2f}, '
+                     f'val loss: {self.val_losses[-1]:.2f}')
+
+
 class WaveNetTrainer:
     def __init__(self, model, dataset, batch_size=32, shuffle=True,
-                 workers=8, epochs=1, learning_rate=1e-3, weight_decay=0.0,
+                 workers=8, epochs=10, learning_rate=1e-3, weight_decay=0.0,
                  train_val_split=0.8, cuda=True):
         self.model = model
         self.dataset = dataset
@@ -87,6 +103,8 @@ class WaveNetTrainer:
             weight_decay=weight_decay,
         )
 
+        self.logger = LossLogger(epochs)
+
     def __repr__(self):
         kwargs = [
             'batch_size',
@@ -119,15 +137,12 @@ class WaveNetTrainer:
         if self.cuda:
             self.model.cuda()
 
-        epoch_timer = TrainingTimer(self.epochs - epoch - 1)
-        step_timer = TrainingTimer(len(self.train_dataloader))
-
-        epoch_timer.start()
+        timer = TrainingTimer(self.epochs - epoch - 1)
 
         for epoch in range(epoch+1, self.epochs):
             self.model.train()
-            step_timer.start()
 
+            logging.info(f'Training on epoch {epoch+1}/{self.epochs}')
             for i, item in enumerate(self.train_dataloader):
                 input_, target = item
                 if self.cuda:
@@ -138,27 +153,17 @@ class WaveNetTrainer:
                 loss.backward()
                 self.optimizer.step()
 
-                logging.info(f'Epoch {epoch+1}/{self.epochs}, '
-                             f'step {i+1}/{len(self.train_dataloader)}, '
-                             f'train loss: {loss.item():.2f}')
-
-                step_timer.step()
-                logging.info(f'Estimated time left on epoch '
-                             f'{epoch+1}/{self.epochs} :'
-                             f'{step_timer.etl_fmt()}')
-
             logging.info('Evaluating')
             train_loss = self.evaluate(self.val_dataloader)
             val_loss = self.evaluate(self.val_dataloader)
-            logging.info(f'Epoch {epoch+1}/{self.epochs}, '
-                         f'train loss: {train_loss:.2f}, '
-                         f'val loss: {val_loss:.2f}')
+            self.logger.add(train_loss, val_loss)
+            self.logger.log()
 
             logging.info('Saving checkpoint')
             self.save_checkpoint(epoch, checkpoint_path)
 
-            epoch_timer.timer.step()
-            logging.info(f'Estimated time left: {epoch_timer.etl_fmt()}')
+            timer.step()
+            logging.info(f'Estimated time left: {timer.etl_fmt()}')
 
     def evaluate(self, dataloader):
         self.model.eval()
