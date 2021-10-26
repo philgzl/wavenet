@@ -68,11 +68,26 @@ class RawAudioDataset(torch.utils.data.Dataset):
 class WaveNetDataset(RawAudioDataset):
     def __init__(self, dirpath, receptive_field, target_length=32,
                  quantization_levels=256):
-        segment_length = receptive_field + target_length
-        self._raw_dataset = RawAudioDataset(dirpath, segment_length)
+        self.dirpath = dirpath
         self.receptive_field = receptive_field
         self.target_length = target_length
         self.quantization_levels = quantization_levels
+
+        segment_length = receptive_field + target_length
+        self._raw_dataset = RawAudioDataset(dirpath, segment_length)
+
+    def __repr__(self):
+        kwargs = [
+            'dirpath',
+            'receptive_field',
+            'target_length',
+            'quantization_levels',
+        ]
+        kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
+        kwargs = ', '.join(kwargs)
+        module_name = self.__class__.__module__
+        class_name = self.__class__.__name__
+        return f'{module_name}.{class_name}({kwargs})'
 
     def __getitem__(self, index):
         if isinstance(index, int):
