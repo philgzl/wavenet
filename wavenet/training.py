@@ -63,7 +63,8 @@ class LossLogger:
 class WaveNetTrainer:
     def __init__(self, model, dataset, batch_size=32, shuffle=True,
                  workers=8, epochs=10, learning_rate=1e-3, weight_decay=0.0,
-                 train_val_split=0.8, cuda=True):
+                 train_val_split=0.8, cuda=True, force=False,
+                 checkpoint_path='checkpoint.pt'):
         self.model = model
         self.dataset = dataset
         self.batch_size = batch_size
@@ -74,6 +75,8 @@ class WaveNetTrainer:
         self.weight_decay = weight_decay
         self.train_val_split = train_val_split
         self.cuda = cuda
+        self.checkpoint_path = checkpoint_path
+        self.force = force
 
         train_length = int(len(self.dataset)*train_val_split)
         val_length = len(self.dataset) - train_length
@@ -113,6 +116,8 @@ class WaveNetTrainer:
             'weight_decay',
             'train_val_split',
             'cuda',
+            'checkpoint_path',
+            'force',
         ]
         kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
         kwargs = ', '.join(kwargs)
@@ -120,10 +125,10 @@ class WaveNetTrainer:
         class_name = self.__class__.__name__
         return f'{module_name}.{class_name}({kwargs})'
 
-    def train(self, checkpoint_path='checkpoint.pt'):
-        if os.path.exists(checkpoint_path):
+    def train(self):
+        if not self.force and os.path.exists(self.checkpoint_path):
             logging.info('Checkpoint found')
-            epoch = self.load_checkpoint(checkpoint_path)
+            epoch = self.load_checkpoint(self.checkpoint_path)
             if epoch+1 < self.epochs:
                 logging.info(f'Resuming training at epoch {epoch+1}')
             else:

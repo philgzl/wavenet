@@ -8,15 +8,17 @@ from wavenet.training import WaveNetTrainer
 
 
 def main():
+    parser = WaveNetArgParser(description='model training')
+    parser.add_argument('-f', '--force', action='store_true',
+                        help='train from scratch even if checkpoint exists')
+    args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,
         format='%(asctime)s %(levelname)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )
-
-    parser = WaveNetArgParser(description='model training')
-    args = parser.parse_args()
 
     logging.info('Initializing model')
     model = WaveNet(
@@ -55,6 +57,7 @@ def main():
         weight_decay=args.weight_decay,
         train_val_split=args.train_val_split,
         cuda=args.cuda,
+        force=args.force,
     )
     logging.info(repr(trainer))
 
