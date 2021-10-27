@@ -128,7 +128,7 @@ class WaveNetTrainer:
     def train(self):
         if not self.force and os.path.exists(self.checkpoint_path):
             logging.info('Checkpoint found')
-            epoch = self.load_checkpoint(self.checkpoint_path)
+            epoch = self.load_checkpoint()
             if epoch+1 < self.epochs:
                 logging.info(f'Resuming training at epoch {epoch+1}')
             else:
@@ -164,7 +164,7 @@ class WaveNetTrainer:
             self.logger.log(epoch)
 
             logging.info('Saving checkpoint')
-            self.save_checkpoint(epoch, checkpoint_path)
+            self.save_checkpoint(epoch)
 
             timer.step()
             timer.log()
@@ -183,18 +183,28 @@ class WaveNetTrainer:
         total_loss /= len(dataloader)
         return total_loss
 
-    def save_checkpoint(self, epoch, path):
+    def save_checkpoint(self, epoch):
         state = {
             'epoch': epoch,
             'model': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'losses': self.logger.losses,
         }
-        torch.save(state, path)
+        torch.save(state, self.checkpoint_path)
 
-    def load_checkpoint(self, path):
-        state = torch.load(path)
+    def load_checkpoint(self):
+        state = torch.load(self.checkpoint_path)
         self.model.load_state_dict(state['model'])
+        if self.cuda:
+            self.model.cuda()
+            # if the model was moved to cuda the optimizer needs to be
+            # reinitialized before loading the optimizer state dict
+            # see https://github.com/pytorch/pytorch/issues/2830
+            self.optimizer.__init__(
+                params=self.model.parameters(),
+                lr=self.learning_rate,
+                weight_decay=self.weight_decay,
+            )
         self.optimizer.load_state_dict(state['optimizer'])
         self.logger.losses = state['losses']
         return state['epoch']
