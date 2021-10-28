@@ -55,16 +55,21 @@ class LossLogger:
     def log(self, epoch):
         train_loss = self.losses['train'][-1]
         val_loss = self.losses['val'][-1]
-        logging.info(f'Epoch {epoch+1}/{self.epochs}, '
-                     f'train loss: {train_loss:.2f}, '
-                     f'val loss: {val_loss:.2f}')
+        if epoch == -1:
+            logging.info(f'Initial state '
+                         f'train loss: {train_loss:.2f}, '
+                         f'val loss: {val_loss:.2f}')
+        else:
+            logging.info(f'Epoch {epoch+1}/{self.epochs} '
+                         f'train loss: {train_loss:.2f}, '
+                         f'val loss: {val_loss:.2f}')
 
 
 class WaveNetTrainer:
-    def __init__(self, model, dataset, batch_size=32, shuffle=True,
-                 workers=8, epochs=10, learning_rate=1e-3, weight_decay=0.0,
-                 train_val_split=0.8, cuda=True, force=False,
-                 checkpoint_path='checkpoint.pt'):
+    def __init__(self, model, dataset, checkpoint_path, batch_size=32,
+                 shuffle=True, workers=8, epochs=10, learning_rate=1e-3,
+                 weight_decay=0.0, train_val_split=0.8, cuda=True,
+                 ignore_checkpoint=False):
         self.model = model
         self.dataset = dataset
         self.batch_size = batch_size
@@ -76,7 +81,7 @@ class WaveNetTrainer:
         self.train_val_split = train_val_split
         self.cuda = cuda
         self.checkpoint_path = checkpoint_path
-        self.force = force
+        self.ignore_checkpoint = ignore_checkpoint
 
         train_length = int(len(self.dataset)*train_val_split)
         val_length = len(self.dataset) - train_length
@@ -108,6 +113,7 @@ class WaveNetTrainer:
 
     def __repr__(self):
         kwargs = [
+            'checkpoint_path',
             'batch_size',
             'shuffle',
             'workers',
@@ -117,7 +123,7 @@ class WaveNetTrainer:
             'train_val_split',
             'cuda',
             'checkpoint_path',
-            'force',
+            'ignore_checkpoint',
         ]
         kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
         kwargs = ', '.join(kwargs)
@@ -126,7 +132,7 @@ class WaveNetTrainer:
         return f'{module_name}.{class_name}({kwargs})'
 
     def train(self):
-        if not self.force and os.path.exists(self.checkpoint_path):
+        if not self.ignore_checkpoint and os.path.exists(self.checkpoint_path):
             logging.info('Checkpoint found')
             epoch = self.load_checkpoint()
             if epoch+1 < self.epochs:
@@ -136,9 +142,13 @@ class WaveNetTrainer:
                 return
         else:
             epoch = -1
-
-        if self.cuda:
-            self.model.cuda()
+            if self.cuda:
+                self.model.cuda()
+            logging.info('Evaluating before first epoch')
+            train_loss = self.evaluate(self.train_dataloader)
+            val_loss = self.evaluate(self.val_dataloader)
+            self.logger.add(train_loss, val_loss)
+            self.logger.log(epoch)
 
         timer = TrainingTimer(self.epochs - epoch - 1)
         timer.start()
@@ -169,6 +179,8 @@ class WaveNetTrainer:
             timer.step()
             timer.log()
 
+        logging.info('Training over')
+
     def evaluate(self, dataloader):
         self.model.eval()
         total_loss = 0
@@ -197,8 +209,8 @@ class WaveNetTrainer:
         self.model.load_state_dict(state['model'])
         if self.cuda:
             self.model.cuda()
-            # if the model was moved to cuda the optimizer needs to be
-            # reinitialized before loading the optimizer state dict
+            # if the model was moved to cuda then the optimizer needs to be
+            # reinitialized before loading the optimizer state dictionary
             # see https://github.com/pytorch/pytorch/issues/2830
             self.optimizer.__init__(
                 params=self.model.parameters(),

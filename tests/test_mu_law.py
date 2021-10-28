@@ -1,6 +1,6 @@
 import torch
 
-from wavenet.utils import one_hot_encode
+from wavenet.dataset import one_hot_encode
 
 
 def test_mu_lay():

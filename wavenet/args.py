@@ -4,6 +4,30 @@ from .config import get_config
 
 
 class WaveNetArgParser(argparse.ArgumentParser):
+
+    arg_map = {
+        'layers': ['MODEL', 'LAYERS'],
+        'blocks': ['MODEL', 'BLOCKS'],
+        'kernel_size': ['MODEL', 'KERNEL_SIZE'],
+        'residual_channels': ['MODEL', 'RESIDUAL_CHANNELS'],
+        'dilation_channels': ['MODEL', 'DILATION_CHANNELS'],
+        'skip_channels': ['MODEL', 'SKIP_CHANNELS'],
+        'end_channels': ['MODEL', 'END_CHANNELS'],
+        'initial_filter_width': ['MODEL', 'INITIAL_FILTER_WIDTH'],
+        'bias': ['MODEL', 'BIAS'],
+
+        'dirpath': ['DATASET', 'DIRPATH'],
+        'target_length': ['DATASET', 'TARGET_LENGTH'],
+        'quantization_levels': ['DATASET', 'QUANTIZATION_LEVELS'],
+
+        'batch_size': ['TRAINING', 'BATCH_SIZE'],
+        'shuffle': ['TRAINING', 'SHUFFLE'],
+        'epochs': ['TRAINING', 'EPOCHS'],
+        'learning_rate': ['TRAINING', 'LEARNING_RATE'],
+        'weight_decay': ['TRAINING', 'WEIGHT_DECAY'],
+        'train_val_split': ['TRAINING', 'TRAIN_VAL_SPLIT'],
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -25,34 +49,14 @@ class WaveNetArgParser(argparse.ArgumentParser):
 
         group = self.add_argument_group('training')
         group.add_argument('--batch-size', type=int)
-        group.add_argument('--workers', type=int)
         group.add_argument('--shuffle', type=lambda x: bool(int(x)))
         group.add_argument('--epochs', type=int)
         group.add_argument('--learning_rate', type=float)
         group.add_argument('--weight_decay', type=float)
         group.add_argument('--train_val_split', type=float)
-        group.add_argument('--cuda', type=lambda x: bool(int(x)))
 
         config = get_config()
-        self.set_defaults(
-            layers=config.MODEL.LAYERS,
-            blocks=config.MODEL.BLOCKS,
-            kernel_size=config.MODEL.KERNEL_SIZE,
-            residual_channels=config.MODEL.RESIDUAL_CHANNELS,
-            dilation_channels=config.MODEL.DILATION_CHANNELS,
-            skip_channels=config.MODEL.SKIP_CHANNELS,
-            end_channels=config.MODEL.END_CHANNELS,
-            initial_filter_width=config.MODEL.INITIAL_FILTER_WIDTH,
-            bias=config.MODEL.BIAS,
-            dirpath=config.DATASET.DIRPATH,
-            target_length=config.DATASET.TARGET_LENGTH,
-            quantization_levels=config.DATASET.QUANTIZATION_LEVELS,
-            batch_size=config.TRAINING.BATCH_SIZE,
-            shuffle=config.TRAINING.SHUFFLE,
-            workers=config.TRAINING.WORKERS,
-            epochs=config.TRAINING.EPOCHS,
-            learning_rate=config.TRAINING.LEARNING_RATE,
-            weight_decay=config.TRAINING.WEIGHT_DECAY,
-            train_val_split=config.TRAINING.TRAIN_VAL_SPLIT,
-            cuda=config.TRAINING.CUDA,
-        )
+        defaults = {}
+        for arg_name, key_list in self.arg_map.items():
+            defaults[arg_name] = config.get_field(key_list)
+        self.set_defaults(**defaults)
