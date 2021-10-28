@@ -14,7 +14,7 @@ from wavenet.training import WaveNetTrainer
 def main():
     parser = argparse.ArgumentParser(description='model training')
     parser.add_argument('input',
-                        help='input config file')
+                        help='input config file or directory')
     parser.add_argument('--ignore-checkpoint', action='store_true',
                         help='ignore checkpoint')
     parser.add_argument('--cuda', action='store_true',
@@ -30,6 +30,8 @@ def main():
         datefmt='%Y-%m-%d %H:%M:%S',
     )
 
+    if os.path.isdir(args.input):
+        args.input = os.path.join(args.input, 'config.yaml')
     config = get_config(args.input)
 
     torch.manual_seed(config.SEED)
