@@ -1,16 +1,18 @@
-import sys
 import logging
+import sys
 import time
 
 import torch
 
-from wavenet.model import WaveNet
-from wavenet.dataset import WaveNetDataset
 from wavenet.args import WaveNetArgParser
+from wavenet.dataset import WaveNetDataset
+from wavenet.model import WaveNet
 
 
 def main():
     parser = WaveNetArgParser(description='dataloader benchmarking')
+    parser.add_argument('--workers', type=int, default=0,
+                        help='number of workers')
     args = parser.parse_args()
 
     logging.basicConfig(

@@ -1,18 +1,25 @@
-import math
+import json
 
-import torch
-
-
-def mu_law_compress(x, mu):
-    return torch.sign(x)*torch.log(1+mu*torch.abs(x))/math.log(1+mu)
+import yaml
 
 
-def one_hot_encode(x, quantization_levels):
-    n = len(x)
-    mu = quantization_levels-1
-    x = mu_law_compress(x, mu)
-    x = 0.5*mu*(x+1)
-    x = x.long()
-    one_hot = torch.zeros((quantization_levels, n))
-    one_hot[x, torch.arange(n)] = 1
-    return one_hot
+def load_yaml(path):
+    with open(path) as f:
+        output = yaml.safe_load(f)
+    return output
+
+
+def dump_yaml(dict_, path):
+    with open(path, 'w') as f:
+        yaml.dump(dict_, f)
+
+
+def load_json(path):
+    with open(path) as f:
+        output = json.load(f)
+    return output
+
+
+def dump_json(dict_, path):
+    with open(path, 'w') as f:
+        json.dump(dict_, f)
