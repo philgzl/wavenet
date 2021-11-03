@@ -67,10 +67,6 @@ class WaveNet(nn.Module):
         self.initial_filter_width = initial_filter_width
         self.bias = bias
 
-        self.args = {
-
-        }
-
         self.residual_blocks = nn.ModuleList()
         for b in range(blocks):
             for i in range(layers):
