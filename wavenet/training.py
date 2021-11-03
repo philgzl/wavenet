@@ -67,8 +67,8 @@ class LossLogger:
 
 class WaveNetTrainer:
     def __init__(self, model, dataset, checkpoint_path, batch_size=32,
-                 shuffle=True, workers=8, epochs=10, learning_rate=1e-3,
-                 weight_decay=0.0, train_val_split=0.8, cuda=True,
+                 shuffle=True, workers=0, epochs=10, learning_rate=1e-3,
+                 weight_decay=0.0, train_val_split=0.8, cuda=False,
                  ignore_checkpoint=False):
         self.model = model
         self.dataset = dataset
