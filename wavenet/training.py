@@ -52,15 +52,15 @@ class LossLogger:
         self.losses['train'].append(train_loss)
         self.losses['val'].append(val_loss)
 
-    def log(self, epoch):
+    def log(self, epochs):
         train_loss = self.losses['train'][-1]
         val_loss = self.losses['val'][-1]
-        if epoch == -1:
+        if epochs == 0:
             logging.info(f'Initial state '
                          f'train loss: {train_loss:.2f}, '
                          f'val loss: {val_loss:.2f}')
         else:
-            logging.info(f'Epoch {epoch+1}/{self.epochs} '
+            logging.info(f'Epoch {epochs}/{self.epochs} '
                          f'train loss: {train_loss:.2f}, '
                          f'val loss: {val_loss:.2f}')
 
@@ -109,6 +109,8 @@ class WaveNetTrainer:
             weight_decay=weight_decay,
         )
 
+        self.scaler = torch.cuda.amp.GradScaler()
+
         self.logger = LossLogger(epochs)
 
     def __repr__(self):
@@ -132,53 +134,85 @@ class WaveNetTrainer:
         return f'{module_name}.{class_name}({kwargs})'
 
     def train(self):
+        # check for a checkpoint
         if not self.ignore_checkpoint and os.path.exists(self.checkpoint_path):
             logging.info('Checkpoint found')
-            epoch = self.load_checkpoint()
-            if epoch+1 < self.epochs:
-                logging.info(f'Resuming training at epoch {epoch+1}')
+
+            # get number of epochs model was trained on
+            epochs = self.load_checkpoint()
+
+            # if training was interrupted then resume training
+            if epochs < self.epochs:
+                logging.info(f'Resuming training at epoch {epochs+1}')
             else:
                 logging.info('Model is already trained')
                 return
         else:
-            epoch = -1
+            # if no checkpoint then model was trained on 0 epochs
+            epochs = 0
+
+            # cast to cuda if requested
             if self.cuda:
                 self.model.cuda()
+
+            # evaluate before training
             logging.info('Evaluating before first epoch')
             train_loss = self.evaluate(self.train_dataloader)
             val_loss = self.evaluate(self.val_dataloader)
             self.logger.add(train_loss, val_loss)
-            self.logger.log(epoch)
+            self.logger.log(epochs)
 
-        timer = TrainingTimer(self.epochs - epoch - 1)
+        # initialize timer
+        timer = TrainingTimer(self.epochs - epochs)
         timer.start()
 
-        for epoch in range(epoch+1, self.epochs):
-            self.model.train()
-
+        # start main loop
+        for epoch in range(epochs, self.epochs):
             logging.info(f'Training on epoch {epoch+1}/{self.epochs}')
+
+            # training routine
+            self.model.train()
             for i, item in enumerate(self.train_dataloader):
+                # get inputs and labels
                 input_, target = item
+
+                # cast to cuda if requested
                 if self.cuda:
                     input_, target = input_.cuda(), target.cuda()
-                self.optimizer.zero_grad()
-                output = self.model(input_)
-                loss = self.criterion(output, target)
-                loss.backward()
-                self.optimizer.step()
 
+                # zero the parameter gradients
+                self.optimizer.zero_grad()
+
+                # run the forward past with autocasting
+                with torch.cuda.amp.autocast():
+                    output = self.model(input_)
+                    loss = self.criterion(output, target)
+
+                # compute gradients on a scaled loss
+                self.scaler.scale(loss).backward()
+
+                # update parameters
+                self.scaler.step(self.optimizer)
+
+                # update the scale
+                self.scaler.update()
+
+            # evaluate
             logging.info('Evaluating')
             train_loss = self.evaluate(self.train_dataloader)
             val_loss = self.evaluate(self.val_dataloader)
             self.logger.add(train_loss, val_loss)
-            self.logger.log(epoch)
+            self.logger.log(epoch+1)
 
+            # save checkpoint
             logging.info('Saving checkpoint')
-            self.save_checkpoint(epoch)
+            self.save_checkpoint(epoch+1)
 
+            # estimate time left
             timer.step()
             timer.log()
 
+        # log end of training
         logging.info('Training over')
 
     def evaluate(self, dataloader):
@@ -189,15 +223,16 @@ class WaveNetTrainer:
                 input_, target = item
                 if self.cuda:
                     input_, target = input_.cuda(), target.cuda()
-                output = self.model(input_)
-                loss = self.criterion(output, target)
-                total_loss += loss.item()
+                with torch.cuda.amp.autocast():
+                    output = self.model(input_)
+                    loss = self.criterion(output, target)
+                    total_loss += loss.item()
         total_loss /= len(dataloader)
         return total_loss
 
-    def save_checkpoint(self, epoch):
+    def save_checkpoint(self, epochs):
         state = {
-            'epoch': epoch,
+            'epochs': epochs,
             'model': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'losses': self.logger.losses,
@@ -219,4 +254,4 @@ class WaveNetTrainer:
             )
         self.optimizer.load_state_dict(state['optimizer'])
         self.logger.losses = state['losses']
-        return state['epoch']
+        return state['epochs']
