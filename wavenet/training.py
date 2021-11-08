@@ -69,7 +69,7 @@ class WaveNetTrainer:
     def __init__(self, model, dataset, checkpoint_path, batch_size=32,
                  shuffle=True, workers=0, epochs=10, learning_rate=1e-3,
                  weight_decay=0.0, train_val_split=0.8, cuda=False,
-                 ignore_checkpoint=False):
+                 ignore_checkpoint=False, mixed_precision=True):
         self.model = model
         self.dataset = dataset
         self.batch_size = batch_size
@@ -82,6 +82,7 @@ class WaveNetTrainer:
         self.cuda = cuda
         self.checkpoint_path = checkpoint_path
         self.ignore_checkpoint = ignore_checkpoint
+        self.mixed_precision = mixed_precision
 
         train_length = int(len(self.dataset)*train_val_split)
         val_length = len(self.dataset) - train_length
@@ -109,7 +110,7 @@ class WaveNetTrainer:
             weight_decay=weight_decay,
         )
 
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.cuda.amp.GradScaler(enabled=mixed_precision)
 
         self.logger = LossLogger(epochs)
 
@@ -126,6 +127,7 @@ class WaveNetTrainer:
             'cuda',
             'checkpoint_path',
             'ignore_checkpoint',
+            'mixed_precision',
         ]
         kwargs = [f'{kwarg}={getattr(self, kwarg)}' for kwarg in kwargs]
         kwargs = ', '.join(kwargs)
@@ -184,7 +186,7 @@ class WaveNetTrainer:
                 self.optimizer.zero_grad()
 
                 # run the forward past with autocasting
-                with torch.cuda.amp.autocast():
+                with torch.cuda.amp.autocast(enabled=self.mixed_precision):
                     output = self.model(input_)
                     loss = self.criterion(output, target)
 
@@ -223,7 +225,7 @@ class WaveNetTrainer:
                 input_, target = item
                 if self.cuda:
                     input_, target = input_.cuda(), target.cuda()
-                with torch.cuda.amp.autocast():
+                with torch.cuda.amp.autocast(enabled=self.mixed_precision):
                     output = self.model(input_)
                     loss = self.criterion(output, target)
                     total_loss += loss.item()

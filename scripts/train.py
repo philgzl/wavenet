@@ -21,6 +21,8 @@ def main():
                         help='train on gpu')
     parser.add_argument('--workers', type=int, default=0,
                         help='number of workers')
+    parser.add_argument('--mixed-precision', action='store_true',
+                        help='use mixed precision')
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -78,6 +80,7 @@ def main():
         train_val_split=config.TRAINING.TRAIN_VAL_SPLIT,
         cuda=args.cuda,
         ignore_checkpoint=args.ignore_checkpoint,
+        mixed_precision=args.mixed_precision,
     )
     logging.info(repr(trainer))
 
