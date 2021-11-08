@@ -1,5 +1,5 @@
 # wavenet
-Yet another WaveNet implementation on PyTorch
+A PyTorch implementation of DeepMind's WaveNet
 
 # Installation
 
