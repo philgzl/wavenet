@@ -1,7 +1,7 @@
 #!/bin/sh
 
 OPTS=$(getopt \
-    --longoptions ignore-checkpoint,workers,mixed-precision: \
+    --longoptions ignore-checkpoint,workers:,mixed-precision \
     --options "" \
     -- "$@"
 )
