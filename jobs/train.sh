@@ -10,7 +10,7 @@ eval set -- "$OPTS"
 
 IGNORE_CHECKPOINT=false
 WORKERS=8
-MIXED_PRECISION=true
+MIXED_PRECISION=false
 while true
 do
   case "$1" in
