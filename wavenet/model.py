@@ -1,5 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+from .utils import one_hot_encode, mu_law_expand, zero_pad
 
 
 class ResidualBlock(nn.Module):
@@ -143,3 +147,29 @@ class WaveNet(nn.Module):
         stack_field = self.blocks*(block_field - 1) + 1
         total_field = stack_field + self.initial_filter_width - 1
         return total_field
+
+    def generate(self, n_samples, init_samples=None):
+        if init_samples is None:
+            init_samples = torch.zeros(self.receptive_field)
+        elif len(init_samples) < self.receptive_field:
+            init_samples = zero_pad(init_samples, n_out=self.receptive_field)
+        else:
+            init_samples = init_samples[-self.receptive_field:]
+        input_ = one_hot_encode(init_samples, self.input_channels)
+        input_ = input_.unsqueeze(0)
+        waveform = torch.zeros(n_samples)
+        old_progress = -1
+        for i in range(n_samples):
+            progress = int((i+1)/n_samples*100)
+            if progress != old_progress:
+                print(f'{progress}%')
+            old_progress = progress
+            output = self(input_).flatten()
+            prob = F.softmax(output, dim=0).numpy()
+            sample = np.random.choice(self.input_channels, p=prob)
+            input_[:, :, :-1] = input_[:, :, 1:]
+            input_[:, :, -1] = 0
+            input_[:, sample, -1] = 1
+            waveform[i] = sample
+        waveform = 2*waveform/(self.output_channels - 1) - 1
+        return mu_law_expand(waveform, self.output_channels)
