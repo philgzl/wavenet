@@ -21,6 +21,6 @@ mkdir -p jobs/logs
 
 for INPUT in "$@"
 do
-  COMMAND="python scripts/generate.py ${INPUT} -n ${WORKERS}"
+  COMMAND="python scripts/generate.py ${INPUT} -n ${N_SAMPLES}"
   bash jobs/submit.sh jobs/job.sh "$COMMAND"
 done
