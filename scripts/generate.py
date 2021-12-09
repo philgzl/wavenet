@@ -16,7 +16,9 @@ from wavenet.utils import one_hot_encode, mu_law_expand, zero_pad
 def main():
     parser = argparse.ArgumentParser(description='model training')
     parser.add_argument('input',
-                        help='input config file or directory')
+                        help='model config file or directory')
+    parser.add_argument('output',
+                        help='output file name')
     parser.add_argument('-n', '--n-samples', type=int, default=160000,
                         help='number of samples to generate')
     args = parser.parse_args()
@@ -86,7 +88,7 @@ def main():
         waveform = 2*waveform/(model.output_channels - 1) - 1
         waveform = mu_law_expand(waveform, model.output_channels)
 
-    torchaudio.save('temp.wav', waveform.unsqueeze(0), 16000)
+    torchaudio.save(args.output, waveform.unsqueeze(0), 16000)
 
 
 if __name__ == '__main__':
