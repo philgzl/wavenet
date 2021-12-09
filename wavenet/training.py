@@ -221,8 +221,7 @@ class WaveNetTrainer:
         self.model.eval()
         total_loss = 0
         with torch.no_grad():
-            for i, item in enumerate(dataloader):
-                input_, target = item
+            for input_, target in dataloader:
                 if self.cuda:
                     input_, target = input_.cuda(), target.cuda()
                 with torch.cuda.amp.autocast(enabled=self.mixed_precision):
