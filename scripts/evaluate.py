@@ -17,10 +17,8 @@ def main():
                         help='model config file or directory')
     parser.add_argument('database',
                         help='path to database to evaluate on')
-    parser.add_argument('--batchsize', type=int, default=32,
-                        help='batchsize')
-    parser.add_argument('--workers', type=int, default=4,
-                        help='batchsize')
+    parser.add_argument('--workers', type=int, default=0,
+                        help='number of workers')
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -66,7 +64,7 @@ def main():
 
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset,
-        batch_size=args.batchsize,
+        batch_size=config.TRAINING.BATCH_SIZE,
         num_workers=args.workers,
     )
 
@@ -75,11 +73,12 @@ def main():
     model.eval()
     old_progress = -1
     loss = 0
+    n = len(dataloader)
 
     with torch.no_grad():
         for i, item in enumerate(dataloader):
 
-            progress = int((i+1)/len(dataloader)*100)
+            progress = int((i+1)/n*100)
             if progress != old_progress:
                 logging.info(f'{progress}%')
             old_progress = progress
@@ -88,7 +87,7 @@ def main():
             output = model(input_)
             loss += criterion(output, target).item()
 
-    loss /= len(dataloader)
+    loss /= n
 
     logging.info(loss)
 
