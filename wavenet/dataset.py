@@ -18,7 +18,7 @@ class RawAudioDataset(torch.utils.data.Dataset):
         paths = []
         for root, folders, files in os.walk(self.dirpath):
             for file in files:
-                if file.lower().endswith('.wav'):
+                if file.lower().endswith(('.wav', '.flac')):
                     path = os.path.join(root, file)
                     paths.append(path)
         return paths
