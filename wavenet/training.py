@@ -219,17 +219,16 @@ class WaveNetTrainer:
 
     def evaluate(self, dataloader):
         self.model.eval()
-        total_loss = 0
+        loss = 0
         with torch.no_grad():
             for input_, target in dataloader:
                 if self.cuda:
                     input_, target = input_.cuda(), target.cuda()
                 with torch.cuda.amp.autocast(enabled=self.mixed_precision):
                     output = self.model(input_)
-                    loss = self.criterion(output, target)
-                    total_loss += loss.item()
-        total_loss /= len(dataloader)
-        return total_loss
+                    loss += self.criterion(output, target).item()
+        loss /= len(dataloader)
+        return loss
 
     def save_checkpoint(self, epochs):
         state = {
