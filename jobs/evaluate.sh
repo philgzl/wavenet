@@ -21,7 +21,7 @@ done
 
 mkdir -p jobs/logs
 
-COMMAND="python scripts/evaluate.py $1 $2 --workers ${WORKERS}"
+COMMAND="python scripts/evaluate.py $1 $2 --cuda --workers ${WORKERS}"
 if [ "$MIXED_PRECISION" = true ]
 then
   COMMAND="${COMMAND} --mixed-precision"
