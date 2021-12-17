@@ -88,6 +88,9 @@ def main():
     loss = 0
     n = len(dataloader)
 
+    if args.cuda:
+        model.cuda()
+
     with torch.no_grad():
         for i, item in enumerate(dataloader):
 
