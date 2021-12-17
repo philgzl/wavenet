@@ -17,8 +17,12 @@ def main():
                         help='model config file or directory')
     parser.add_argument('database',
                         help='path to database to evaluate on')
+    parser.add_argument('--cuda', action='store_true',
+                        help='evaluate on gpu')
     parser.add_argument('--workers', type=int, default=0,
                         help='number of workers')
+    parser.add_argument('--mixed-precision', action='store_true',
+                        help='use mixed precision')
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -48,10 +52,14 @@ def main():
     )
     logging.info(repr(model))
 
-    model_dir = os.path.dirname(args.input)
-    checkpoint_path = os.path.join(model_dir, 'checkpoint.pt')
-    state = torch.load(checkpoint_path, map_location='cpu')
-    model.load_state_dict(state['model'])
+    logging.info('Initializing dataset')
+    dataset = WaveNetDataset(
+        dirpath=args.database,
+        receptive_field=model.receptive_field,
+        target_length=config.DATASET.TARGET_LENGTH,
+        quantization_levels=config.DATASET.QUANTIZATION_LEVELS,
+    )
+    logging.info(repr(dataset))
 
     logging.info('Initializing dataset')
     dataset = WaveNetDataset(
@@ -67,6 +75,11 @@ def main():
         batch_size=config.TRAINING.BATCH_SIZE,
         num_workers=args.workers,
     )
+
+    model_dir = os.path.dirname(args.input)
+    checkpoint_path = os.path.join(model_dir, 'checkpoint.pt')
+    state = torch.load(checkpoint_path, map_location='cpu')
+    model.load_state_dict(state['model'])
 
     criterion = nn.CrossEntropyLoss()
 
@@ -84,10 +97,14 @@ def main():
             old_progress = progress
 
             input_, target = item
-            output = model(input_)
-            loss += criterion(output, target).item()
+            if args.cuda:
+                input_, target = input_.cuda(), target.cuda()
 
-    loss /= n
+            with torch.cuda.amp.autocast(enabled=args.mixed_precision):
+                output = model(input_)
+                loss += criterion(output, target).item()
+
+    loss /= len(dataloader)
 
     logging.info(loss)
 
