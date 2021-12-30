@@ -73,7 +73,7 @@ def main():
     path = random.choice(paths)
 
     waveform, _ = torchaudio.load(path)
-    waveform = waveform.squeeze()
+    waveform = waveform[0, :]
     quantization_levels = config.DATASET.QUANTIZATION_LEVELS
 
     class WavenetExampleDataset(torch.utils.data.Dataset):
