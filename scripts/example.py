@@ -75,53 +75,33 @@ def main():
     waveform, _ = torchaudio.load(path)
     waveform = waveform[0, :]
     quantization_levels = config.DATASET.QUANTIZATION_LEVELS
+    one_hot = one_hot_encode(waveform, quantization_levels)
+    input_ = one_hot[:, :-1]
+    target = one_hot[:, -(len(waveform)-model.receptive_field):]
+    target = target.argmax(dim=0)
 
-    class WavenetExampleDataset(torch.utils.data.Dataset):
-        def __getitem__(self, index):
-            segment = waveform[index:index+model.receptive_field+1]
-            one_hot = one_hot_encode(segment, quantization_levels)
-            input_ = one_hot[:, :-1]
-            target = one_hot[:, -1:]
-            target = target.argmax(dim=0)
-            return input_, target
+    input_ = input_.unsqueeze(0)
+    target = target.unsqueeze(0)
 
-        def __len__(self):
-            return len(waveform) - model.receptive_field - 1
-
-    dataset = WavenetExampleDataset()
-
-    dataloader = torch.utils.data.DataLoader(
-        dataset=dataset,
-        batch_size=1,
-        num_workers=args.workers,
-    )
+    model.eval()
+    with torch.no_grad():
+        if args.cuda:
+            model.cuda()
+            input_, target = input_.cuda(), target.cuda()
+        with torch.cuda.amp.autocast(enabled=args.mixed_precision):
+            output = model(input_)
 
     criterion = nn.CrossEntropyLoss()
 
-    model.eval()
-    old_progress = -1
     losses = []
-    n = len(dataloader)
 
-    if args.cuda:
-        model.cuda()
+    for i in range(output.shape[-1]):
 
-    with torch.no_grad():
-        for i, item in enumerate(dataloader):
+        output_, target_ = output[:, :, i], target[:, i]
 
-            progress = int((i+1)/n*100)
-            if progress != old_progress:
-                logging.info(f'{progress}%')
-            old_progress = progress
-
-            input_, target = item
-            if args.cuda:
-                input_, target = input_.cuda(), target.cuda()
-
-            with torch.cuda.amp.autocast(enabled=args.mixed_precision):
-                output = model(input_)
-                loss = criterion(output, target).item()
-                losses.append(loss)
+        with torch.cuda.amp.autocast(enabled=args.mixed_precision):
+            loss = criterion(output_, target_).item()
+            losses.append(loss)
 
     np.save(f'{args.output}.npy', np.array(losses))
 
